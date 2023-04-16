@@ -1,15 +1,45 @@
+import { useEffect, useState } from 'react';
 import { GetStaticProps, NextPage, GetStaticPaths } from 'next';
 import { Button, Card, Container, Grid, Image, Text } from '@nextui-org/react';
 
-import { pokeApi } from '@/api';
+import confetti from 'canvas-confetti';
+
 import { Layout } from '@/components/layouts';
 import { Pokemon } from '@/interfaces';
+import { getPokemonInfo, localFavorites } from '@/utils';
 
 interface Props {
   pokemon: Pokemon;
 }
 
 const PokemonPage: NextPage<Props> = ({ pokemon }) => {
+
+  const [isInFavorites, setIsInFavorites] = useState( false );
+
+    // console.log(pokemon);
+    // console.log(typeof window);
+
+    const onToggleFavorite = () => {
+      localFavorites.toggleFavorite( pokemon.id );
+      setIsInFavorites( !isInFavorites );
+
+      if ( isInFavorites ) return;
+        
+      confetti({
+        zIndex: 999,
+        particleCount: 100,
+        spread: 160,
+        angle: -100,
+        origin: {
+          x: 1,
+          y: 0,
+        }
+      })
+    }
+
+    useEffect(() => {
+      setIsInFavorites(localFavorites.existInFavorites(pokemon.id));
+  }, [pokemon.id])
 
     return (
         <Layout title={`Pokémon ${pokemon.name}`}>
@@ -35,9 +65,10 @@ const PokemonPage: NextPage<Props> = ({ pokemon }) => {
 
                     <Button
                       color="gradient"
-                      ghost
+                      ghost={!isInFavorites}
+                      onClick={ onToggleFavorite }
                     >
-                      Guardar en favoritos
+                      { isInFavorites ? 'En Favoritos' : 'Guardar en favoritos' }
                     </Button>
                   </Card.Header>
 
@@ -101,11 +132,11 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   
   const { id } = params as { id: string };
   
-  const { data } = await pokeApi.get<Pokemon>(`/pokemon/${ id }`);
+  // const { data } = await pokeApi.get<Pokemon>(`/pokemon/${ id }`);
 
   return {
     props: {
-      pokemon: data
+      pokemon: await getPokemonInfo( id )
     }
   }
 }
